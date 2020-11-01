@@ -4,6 +4,8 @@
 
    use DrewM\MailChimp\MailChimp;
    use Grayl\Gateway\Common\GatewayPorterAbstract;
+   use Grayl\Gateway\MailChimp\Config\MailChimpAPIEndpoint;
+   use Grayl\Gateway\MailChimp\Config\MailChimpConfig;
    use Grayl\Gateway\MailChimp\Controller\MailChimpSubscribeRequestController;
    use Grayl\Gateway\MailChimp\Entity\MailChimpGatewayData;
    use Grayl\Gateway\MailChimp\Entity\MailChimpSubscribeRequestData;
@@ -14,7 +16,7 @@
 
    /**
     * Front-end for the MailChimp package
-    * @method MailChimpGatewayData getSavedGatewayDataEntity ( string $endpoint_id )
+    * @method MailChimpGatewayData getSavedGatewayDataEntity ( string $api_endpoint_id )
     *
     * @package Grayl\Gateway\MailChimp
     */
@@ -29,43 +31,50 @@
        *
        * @var string
        */
-      protected string $config_file = 'gateway.mailchimp.php';
+      protected string $config_file = 'gateway-mailchimp.php';
+
+      /**
+       * The MailChimpConfig instance for this gateway
+       *
+       * @var MailChimpConfig
+       */
+      protected $config;
 
 
       /**
        * Creates a new MailChimp object for use in a MailChimpGatewayData entity
        *
-       * @param array $credentials An array containing all of the credentials needed to create the gateway API
+       * @param MailChimpAPIEndpoint $api_endpoint A MailChimpAPIEndpoint with credentials needed to create a gateway API object
        *
        * @return MailChimp
        * @throws \Exception
        */
-      public function newGatewayAPI ( array $credentials ): object
+      public function newGatewayAPI ( $api_endpoint ): object
       {
 
-         // Return the new API entity
-         return new MailChimp( $credentials[ 'token' ] );
+         // Return the new MailChimp API entity
+         return new MailChimp( $api_endpoint->getToken() );
       }
 
 
       /**
        * Creates a new MailChimpGatewayData entity
        *
-       * @param string $endpoint_id The API endpoint ID to use (typically "default" is there is only one API gateway)
+       * @param string $api_endpoint_id The API endpoint ID to use (typically "default" if there is only one API gateway)
        *
        * @return MailChimpGatewayData
        * @throws \Exception
        */
-      public function newGatewayDataEntity ( string $endpoint_id ): object
+      public function newGatewayDataEntity ( string $api_endpoint_id ): object
       {
 
          // Grab the gateway service
          $service = new MailChimpGatewayService();
 
-         // Get an API
-         $api = $this->newGatewayAPI( $service->getAPICredentials( $this->config,
-                                                                   $this->environment,
-                                                                   $endpoint_id ) );
+         // Get a new API
+         $api = $this->newGatewayAPI( $service->getAPIEndpoint( $this->config,
+                                                                $this->environment,
+                                                                $api_endpoint_id ) );
 
          // Configure the API as needed using the service
          $service->configureAPI( $api,
@@ -73,7 +82,7 @@
 
          // Return the gateway
          return new MailChimpGatewayData( $api,
-                                          $this->config->getConfig( 'name' ),
+                                          $this->config->getGatewayName(),
                                           $this->environment );
       }
 
@@ -123,17 +132,8 @@
       private function getMailChimpListIDFromListAlias ( string $list_alias ): ?string
       {
 
-         // Get the full array of lists
-         $lists = $this->config->getConfig( 'lists' );
-
-         // Return the value if we have one
-         if ( ! empty ( $lists[ $list_alias ] ) ) {
-            // Match
-            return $lists[ $list_alias ];
-         }
-
-         // No match
-         return null;
+         // Return the list ID
+         return $this->config->getMailChimpListID( $list_alias );
       }
 
    }
