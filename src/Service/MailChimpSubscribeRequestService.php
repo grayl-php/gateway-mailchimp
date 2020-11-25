@@ -97,7 +97,9 @@
          $parameters[ 'status_if_new' ] = $request_data->getStatus();
 
          // Merge tags
-         $parameters[ 'merge_fields' ] = $request_data->getMergeTags();
+         if ( ! empty( $request_data->getMergeTags() ) ) {
+            $parameters[ 'merge_fields' ] = $request_data->getMergeTags();
+         }
 
          // Return the array of parameters
          return $parameters;
